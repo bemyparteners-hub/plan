@@ -56,103 +56,326 @@ const UI = {
 
   _afficherChargesIntervenantes(intervenantes, passages) {
     const el = document.getElementById('charges-intervenantes');
-    el.innerHTML = intervenantes.map(iv => {
+    // Limiter à 20 pour le dashboard (60+ IV serait illisible)
+    const liste = intervenantes.slice(0, 20);
+    el.innerHTML = liste.map(iv => {
       const min = passages.filter(p => p.intervenante_id === iv.id).reduce((s,p)=>s+p.duree,0);
       const h   = Utils.arrondi(min / 60);
       const pct = Math.min(100, Math.round(h / iv.contrat_heures * 100));
+      const initiales = (iv.prenom ? iv.prenom[0] : '') + iv.nom[0];
       return `
         <div class="charge-item">
           <div class="charge-header">
-            <span class="badge" style="background:${iv.couleur}">${iv.prenom[0]}${iv.nom[0]}</span>
-            <span>${iv.prenom} ${iv.nom}</span>
+            <span class="badge" style="background:${iv.couleur};font-size:11px">${initiales}</span>
+            <span>${iv.prenom ? iv.prenom + ' ' : ''}${iv.nom}</span>
             <span class="charge-val">${h}h / ${iv.contrat_heures}h</span>
           </div>
           <div class="jauge-bg">
-            <div class="jauge-fill ${pct>100?'err':pct>80?'ok':'warn'}" style="width:${pct}%"></div>
+            <div class="jauge-fill ${pct>100?'err':pct>=70?'ok':'warn'}" style="width:${pct}%"></div>
           </div>
         </div>`;
+    }).join('') + (intervenantes.length > 20
+      ? `<p class="sous-titre" style="text-align:center;margin-top:6px">… et ${intervenantes.length - 20} intervenante(s) supplémentaires</p>`
+      : '');
+  },
+
+  // ── Tableau intervenantes ─────────────────────────────────────────────────
+
+  afficherIntervenantes(intervenantes, passages, filtre) {
+    filtre = (filtre || '').toLowerCase();
+    const liste = filtre
+      ? intervenantes.filter(iv =>
+          (iv.nom + ' ' + (iv.prenom || '') + ' ' + (iv.telephone || '') +
+           ' ' + (iv.email || '') + ' ' + (iv.secteur || '')).toLowerCase().includes(filtre))
+      : intervenantes;
+
+    const countEl = document.getElementById('count-iv');
+    if (countEl) countEl.textContent = `${liste.length} / ${intervenantes.length} intervenante(s)`;
+
+    const corps = document.getElementById('corps-intervenantes');
+    if (!liste.length) {
+      corps.innerHTML = `<tr><td colspan="9" class="vide">${filtre ? 'Aucun résultat pour « ' + filtre + ' ».' : 'Aucune intervenante enregistrée.'}</td></tr>`;
+      return;
+    }
+
+    corps.innerHTML = liste.map(iv => {
+      const min = passages ? passages.filter(p => p.intervenante_id === iv.id).reduce((s,p)=>s+p.duree,0) : 0;
+      const h   = Utils.arrondi(min / 60);
+      const pct = Math.min(100, Math.round(h / iv.contrat_heures * 100));
+      const initiales = (iv.prenom ? iv.prenom[0] : '') + iv.nom[0];
+      // Afficher max 3 compétences
+      const compTags = iv.competences.slice(0, 3).map(c =>
+        `<span class="tag-comp">${COMPETENCES[c]?.label.split('/')[0].trim() || c}</span>`
+      ).join('') + (iv.competences.length > 3 ? `<span class="tag-comp">+${iv.competences.length-3}</span>` : '');
+      const statutActif = iv.actif !== false
+        ? '<span style="color:var(--ok);font-weight:700;">●</span>'
+        : '<span style="color:var(--sub);">○</span>';
+
+      return `<tr>
+        <td class="td-badge"><span class="badge" style="background:${iv.couleur};font-size:11px">${initiales}</span></td>
+        <td class="td-nom">${iv.prenom ? iv.prenom + ' ' : ''}${iv.nom}</td>
+        <td class="td-sub">${iv.telephone || '—'}</td>
+        <td class="td-sub">${iv.email || '—'}</td>
+        <td>${iv.contrat_type || 'CDI'} · ${iv.contrat_heures}h</td>
+        <td class="td-sub">${iv.secteur || '—'}</td>
+        <td>${compTags}</td>
+        <td><span class="charge-inline ${pct>100?'err':pct>=70?'ok':'warn'}">${h}h / ${iv.contrat_heures}h</span></td>
+        <td class="td-actions">
+          <button class="btn btn-sm btn-outline" onclick="App.voirFicheIntervenante('${iv.id}')">Fiche</button>
+          <button class="btn-icon" onclick="App.editerIntervenante('${iv.id}')" title="Modifier">✏️</button>
+          <button class="btn-icon danger" onclick="App.supprimerIntervenante('${iv.id}')" title="Supprimer">🗑️</button>
+        </td>
+      </tr>`;
     }).join('');
   },
 
-  // ── Liste des intervenantes ───────────────────────────────────────────────
-
-  afficherIntervenantes(intervenantes) {
-    const el = document.getElementById('liste-intervenantes');
-    if (!intervenantes.length) {
-      el.innerHTML = '<p class="vide">Aucune intervenante enregistrée.</p>';
-      return;
-    }
-    el.innerHTML = intervenantes.map(iv => `
-      <div class="card" data-id="${iv.id}">
-        <div class="card-header">
-          <span class="badge" style="background:${iv.couleur}">${iv.prenom[0]}${iv.nom[0]}</span>
-          <div>
-            <strong>${iv.prenom} ${iv.nom}</strong>
-            <div class="sous-titre">${iv.telephone} · ${iv.contrat_heures}h/sem.</div>
-          </div>
-          <div class="card-actions">
-            <button class="btn-icon" onclick="App.editerIntervenante('${iv.id}')" title="Modifier">✏️</button>
-            <button class="btn-icon danger" onclick="App.supprimerIntervenante('${iv.id}')" title="Supprimer">🗑️</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="competences">
-            ${iv.competences.map(c => `<span class="tag">${COMPETENCES[c]?.label || c}</span>`).join('')}
-          </div>
-          <div class="dispos">
-            ${this._resumeDispos(iv.disponibilites)}
-          </div>
-          ${iv.absences.length ? `<div class="absences">🚫 ${iv.absences.length} absence(s) cette semaine</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-  },
-
   _resumeDispos(dispos) {
-    if (!dispos.length) return '<span class="sous-titre">Aucune disponibilité</span>';
+    if (!dispos || !dispos.length) return '<span class="sous-titre">Aucune disponibilité</span>';
     return dispos.map(d =>
       `<span class="dispo-tag">${Utils.JOURS_COURT[d.jour]} ${d.debut}–${d.fin}</span>`
     ).join('');
   },
 
-  // ── Liste des bénéficiaires ───────────────────────────────────────────────
+  // ── Tableau bénéficiaires ─────────────────────────────────────────────────
 
-  afficherBeneficiaires(beneficiaires, passages) {
-    const el = document.getElementById('liste-beneficiaires');
-    if (!beneficiaires.length) {
-      el.innerHTML = '<p class="vide">Aucun bénéficiaire enregistré.</p>';
+  afficherBeneficiaires(beneficiaires, passages, filtre) {
+    filtre = (filtre || '').toLowerCase();
+    const liste = filtre
+      ? beneficiaires.filter(b =>
+          (b.nom + ' ' + (b.prenom || '') + ' ' + (b.adresse || '') +
+           ' ' + (b.telephone || '') + ' ' + (b.secteur || '')).toLowerCase().includes(filtre))
+      : beneficiaires;
+
+    const countEl = document.getElementById('count-bn');
+    if (countEl) countEl.textContent = `${liste.length} / ${beneficiaires.length} bénéficiaire(s)`;
+
+    const corps = document.getElementById('corps-beneficiaires');
+    if (!liste.length) {
+      corps.innerHTML = `<tr><td colspan="9" class="vide">${filtre ? 'Aucun résultat pour « ' + filtre + ' ».' : 'Aucun bénéficiaire enregistré.'}</td></tr>`;
       return;
     }
-    el.innerHTML = beneficiaires.map(b => {
-      const passagesB = passages.filter(p => p.beneficiaire_id === b.id);
+
+    corps.innerHTML = liste.map(b => {
+      const passagesB  = passages ? passages.filter(p => p.beneficiaire_id === b.id) : [];
       const hCouvertes = Utils.arrondi(passagesB.reduce((s,p)=>s+p.duree,0) / 60);
-      const taux = b.besoins.heures_semaine > 0
-        ? Math.round(hCouvertes / b.besoins.heures_semaine * 100) : 0;
-      return `
-        <div class="card" data-id="${b.id}">
-          <div class="card-header">
-            <span class="badge benef">${b.prenom[0]}${b.nom[0]}</span>
-            <div>
-              <strong>${b.prenom} ${b.nom}</strong>
-              <div class="sous-titre">${b.adresse}</div>
-            </div>
-            <div class="card-actions">
-              <button class="btn-icon" onclick="App.editerBeneficiaire('${b.id}')" title="Modifier">✏️</button>
-              <button class="btn-icon danger" onclick="App.supprimerBeneficiaire('${b.id}')" title="Supprimer">🗑️</button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="besoins-row">
-              <span>🕐 ${b.besoins.heures_semaine}h/sem. · ${b.besoins.passages_par_semaine} passages · ${b.besoins.duree_passage}min</span>
-              <span class="couverture ${taux>=100?'ok':taux>0?'warn':'err'}">${taux}% couvert</span>
-            </div>
-            <div class="competences">
-              ${b.competences_requises.map(c => `<span class="tag requis">${COMPETENCES[c]?.label || c}</span>`).join('')}
-            </div>
-            ${b.notes ? `<div class="notes">📝 ${b.notes}</div>` : ''}
-          </div>
-        </div>`;
+      const taux       = b.besoins.heures_semaine > 0 ? Math.round(hCouvertes / b.besoins.heures_semaine * 100) : 0;
+      const prio       = b.priorite || 2;
+      const adr        = (b.adresse || '—').length > 32 ? b.adresse.slice(0, 30) + '…' : (b.adresse || '—');
+
+      return `<tr>
+        <td class="td-nom">${b.prenom ? b.prenom + ' ' : ''}${b.nom}</td>
+        <td class="td-sub" title="${b.adresse || ''}">${adr}</td>
+        <td class="td-sub">${b.telephone || '—'}</td>
+        <td><strong>${b.besoins.heures_semaine}h</strong></td>
+        <td class="td-sub">${b.besoins.passages_par_semaine} × ${b.besoins.duree_passage}min</td>
+        <td><span class="prio prio-${prio}">${PRIORITES[prio] || prio}</span></td>
+        <td class="td-sub">${b.secteur || '—'}</td>
+        <td><span class="couv-inline ${taux>=100?'ok':taux>0?'warn':'err'}">${taux}%</span></td>
+        <td class="td-actions">
+          <button class="btn btn-sm btn-outline" onclick="App.voirFicheBeneficiaire('${b.id}')">Fiche</button>
+          <button class="btn-icon" onclick="App.editerBeneficiaire('${b.id}')" title="Modifier">✏️</button>
+          <button class="btn-icon danger" onclick="App.supprimerBeneficiaire('${b.id}')" title="Supprimer">🗑️</button>
+        </td>
+      </tr>`;
     }).join('');
+  },
+
+  // ── Fiches détaillées ─────────────────────────────────────────────────────
+
+  afficherFicheIntervenante(iv, passages, beneficiaires) {
+    const min = passages.reduce((s,p) => s+p.duree, 0);
+    const h   = Utils.arrondi(min / 60);
+    const pct = iv.contrat_heures > 0 ? Math.round(h / iv.contrat_heures * 100) : 0;
+
+    // Bénéficiaires assignés dans le planning courant
+    const bnIds   = [...new Set(passages.map(p => p.beneficiaire_id))];
+    const bnAssignes = bnIds.map(id => beneficiaires.find(b => b.id === id)).filter(Boolean);
+
+    // Bénéficiaires habituels (hors planning courant)
+    const bnHabituels = (iv.beneficiaires_habituels || [])
+      .map(id => beneficiaires.find(b => b.id === id)).filter(Boolean);
+
+    // Refus
+    const bnRefus = (iv.refus || [])
+      .map(id => beneficiaires.find(b => b.id === id)).filter(Boolean);
+
+    document.getElementById('fiche-titre').textContent =
+      `${iv.prenom ? iv.prenom + ' ' : ''}${iv.nom}`;
+
+    const lienBN = arr => arr.length
+      ? arr.map(b => `<span class="lien-bn" onclick="App.voirFicheBeneficiaire('${b.id}');UI.fermerModal('modal-fiche')">${b.nom}</span>`).join('')
+      : '<span class="sous-titre">—</span>';
+
+    const passageTri = [...passages].sort((a,b) => a.jour - b.jour || Utils.heureEnMinutes(a.debut) - Utils.heureEnMinutes(b.debut));
+
+    document.getElementById('fiche-corps').innerHTML = `
+      <div class="fiche-corps">
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Identité & Contrat</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">ID</span><span class="fiche-val">${iv.id}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Statut</span><span class="fiche-val">${iv.actif !== false ? '● Actif' : '○ Inactif'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Téléphone</span><span class="fiche-val">${iv.telephone || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Email</span><span class="fiche-val">${iv.email || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Adresse</span><span class="fiche-val">${iv.adresse || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Secteur</span><span class="fiche-val">${iv.secteur || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Type de contrat</span><span class="fiche-val">${iv.contrat_type || 'CDI'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Heures contractuelles</span><span class="fiche-val em">${iv.contrat_heures}h / semaine</span></div>
+            <div class="fiche-field"><span class="fiche-label">Heures planifiées</span><span class="fiche-val">${h}h (${pct}%)</span></div>
+            <div class="fiche-field"><span class="fiche-label">Véhicule</span><span class="fiche-val">${iv.vehicule ? '✓ Oui' : '✗ Non'}</span></div>
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Compétences</div>
+          <div class="competences" style="padding:10px 14px">
+            ${iv.competences.map(c => `<span class="tag">${COMPETENCES[c]?.label || c}</span>`).join('') || '<span class="sous-titre">—</span>'}
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Disponibilités</div>
+          <div class="dispos-liste">
+            ${iv.disponibilites.map(d => `<span class="dispo-tag">${Utils.JOURS[d.jour]} ${d.debut}–${d.fin}</span>`).join('') || '<span class="sous-titre">—</span>'}
+          </div>
+          ${iv.absences && iv.absences.length ? `<div style="padding:0 14px 10px;font-size:12px;color:var(--err)">🚫 Absences : ${iv.absences.join(', ')}</div>` : ''}
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Planning de la semaine (${passages.length} passage(s))</div>
+          <div class="passes-liste">
+            ${passageTri.length ? passageTri.map(p => {
+              const bn = beneficiaires.find(b => b.id === p.beneficiaire_id);
+              return `<div class="pass-item">
+                <span class="pass-dot" style="background:${iv.couleur}"></span>
+                <strong>${Utils.JOURS_COURT[p.jour]}</strong>
+                <span>${p.debut}–${p.fin}</span>
+                <span class="td-sub">→ ${bn ? bn.nom : p.beneficiaire_id}</span>
+              </div>`;
+            }).join('') : '<span class="vide" style="padding:0">Aucun passage planifié cette semaine.</span>'}
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Affinités & Continuité</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">Intervient chez (planning)</span><div class="fiche-val">${lienBN(bnAssignes)}</div></div>
+            <div class="fiche-field"><span class="fiche-label">Bénéficiaires habituels</span><div class="fiche-val">${lienBN(bnHabituels)}</div></div>
+            <div class="fiche-field"><span class="fiche-label">Refus de prise en charge</span><div class="fiche-val">${lienBN(bnRefus)}</div></div>
+          </div>
+        </div>
+
+      </div>`;
+  },
+
+  afficherFicheBeneficiaire(bn, passages, intervenantes) {
+    const passagesB  = passages;
+    const hCouvertes = Utils.arrondi(passagesB.reduce((s,p)=>s+p.duree,0) / 60);
+    const taux       = bn.besoins.heures_semaine > 0 ? Math.round(hCouvertes / bn.besoins.heures_semaine * 100) : 0;
+    const prio       = bn.priorite || 2;
+
+    // Intervenantes assignées cette semaine
+    const ivIds = [...new Set(passagesB.map(p => p.intervenante_id))];
+    const ivAssignees = ivIds.map(id => intervenantes.find(iv => iv.id === id)).filter(Boolean);
+
+    const nomIV = id => {
+      const iv = intervenantes.find(i => i.id === id);
+      return iv ? iv.nom : id;
+    };
+
+    const lienIV = arr => arr.length
+      ? arr.map(iv => `<span class="lien-iv" onclick="App.voirFicheIntervenante('${iv.id}');UI.fermerModal('modal-fiche')">${iv.nom}</span>`).join('')
+      : '<span class="sous-titre">—</span>';
+
+    const lienIVIds = ids => {
+      if (!ids || !ids.length) return '<span class="sous-titre">—</span>';
+      return ids.map(id => {
+        const iv = intervenantes.find(i => i.id === id);
+        return iv
+          ? `<span class="lien-iv" onclick="App.voirFicheIntervenante('${id}');UI.fermerModal('modal-fiche')">${iv.nom}</span>`
+          : `<span class="lien-iv">${id}</span>`;
+      }).join('');
+    };
+
+    const joursLabel = (bn.besoins.jours_preferes || []).map(j => Utils.JOURS_COURT[j]).join(', ') || '—';
+    const creneaux   = (bn.besoins.creneaux_preferes || []).map(c => `${c.debut}–${c.fin}`).join(', ') || '—';
+
+    const passageTri = [...passagesB].sort((a,b) => a.jour - b.jour || Utils.heureEnMinutes(a.debut) - Utils.heureEnMinutes(b.debut));
+
+    document.getElementById('fiche-titre').textContent =
+      `${bn.prenom ? bn.prenom + ' ' : ''}${bn.nom}`;
+
+    document.getElementById('fiche-corps').innerHTML = `
+      <div class="fiche-corps">
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Identité & Contact</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">ID</span><span class="fiche-val">${bn.id}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Priorité</span><span class="fiche-val"><span class="prio prio-${prio}">${PRIORITES[prio]}</span></span></div>
+            <div class="fiche-field"><span class="fiche-label">Téléphone</span><span class="fiche-val">${bn.telephone || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Email</span><span class="fiche-val">${bn.email || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Adresse</span><span class="fiche-val">${bn.adresse || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Secteur</span><span class="fiche-val">${bn.secteur || '—'}</span></div>
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Besoins d'intervention</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">Volume hebdomadaire</span><span class="fiche-val em">${bn.besoins.heures_semaine}h / semaine</span></div>
+            <div class="fiche-field"><span class="fiche-label">Couverture actuelle</span><span class="fiche-val">${hCouvertes}h (${taux}%)</span></div>
+            <div class="fiche-field"><span class="fiche-label">Passages</span><span class="fiche-val">${bn.besoins.passages_par_semaine} × ${bn.besoins.duree_passage} min</span></div>
+            <div class="fiche-field"><span class="fiche-label">Max intervenantes</span><span class="fiche-val">${bn.max_intervenantes || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Jours préférés</span><span class="fiche-val">${joursLabel}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Créneau préféré</span><span class="fiche-val">${creneaux}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Souplesse horaire</span><span class="fiche-val">${bn.souplesse_horaire ? 'Oui' : 'Non'}</span></div>
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Prestations requises</div>
+          <div class="competences" style="padding:10px 14px">
+            ${(bn.competences_requises || []).map(c => `<span class="tag requis">${COMPETENCES[c]?.label || c}</span>`).join('') || '<span class="sous-titre">—</span>'}
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Préférences de personnel</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">Intervenante favorite</span><div class="fiche-val">${bn.intervenante_favorite ? lienIVIds([bn.intervenante_favorite]) : '<span class="sous-titre">—</span>'}</div></div>
+            <div class="fiche-field"><span class="fiche-label">Max intervenantes différentes</span><span class="fiche-val">${bn.max_intervenantes || '—'}</span></div>
+            <div class="fiche-field"><span class="fiche-label">Personnel préféré</span><div class="fiche-val">${lienIVIds(bn.personnel_prefere)}</div></div>
+            <div class="fiche-field"><span class="fiche-label">Personnel refusé</span><div class="fiche-val">${lienIVIds(bn.personnel_refuse)}</div></div>
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Planning semaine (${passagesB.length} passage(s))</div>
+          <div class="passes-liste">
+            ${passageTri.length ? passageTri.map(p => {
+              const iv = intervenantes.find(i => i.id === p.intervenante_id);
+              return `<div class="pass-item">
+                <span class="pass-dot" style="background:${iv ? iv.couleur : '#aaa'}"></span>
+                <strong>${Utils.JOURS_COURT[p.jour]}</strong>
+                <span>${p.debut}–${p.fin}</span>
+                <span class="lien-iv" onclick="App.voirFicheIntervenante('${p.intervenante_id}');UI.fermerModal('modal-fiche')">${iv ? iv.nom : p.intervenante_id}</span>
+              </div>`;
+            }).join('') : '<span class="vide" style="padding:0">Aucun passage planifié cette semaine.</span>'}
+          </div>
+        </div>
+
+        <div class="fiche-section">
+          <div class="fiche-section-titre">Continuité & Habitudes</div>
+          <div class="fiche-grid">
+            <div class="fiche-field"><span class="fiche-label">Intervenantes assignées (semaine)</span><div class="fiche-val">${lienIV(ivAssignees)}</div></div>
+            <div class="fiche-field"><span class="fiche-label">Intervenantes habituelles</span><div class="fiche-val">${lienIVIds(bn.intervenantes_habituelles)}</div></div>
+          </div>
+          ${bn.notes ? `<div class="fiche-full"><span class="fiche-label">Notes</span><div class="fiche-val">${bn.notes}</div></div>` : ''}
+        </div>
+
+      </div>`;
   },
 
   // ── Planning hebdomadaire ─────────────────────────────────────────────────
@@ -327,6 +550,13 @@ const UI = {
       disponibilites,
       absences:       [],
       refus:          [],
+      // Champs étendus — valeurs par défaut (conservés par app.js lors d'une mise à jour)
+      email:         '',
+      adresse:       '',
+      contrat_type:  'CDI',
+      vehicule:      false,
+      actif:         true,
+      beneficiaires_habituels: [],
     };
   },
 
@@ -370,6 +600,15 @@ const UI = {
       telephone: f.elements['bn-tel'].value.trim(),
       notes:   f.elements['bn-notes'].value.trim(),
       competences_requises,
+      // Champs étendus — valeurs par défaut (conservés par app.js lors d'une mise à jour)
+      email:                  '',
+      intervenante_favorite:  null,
+      personnel_prefere:      [],
+      personnel_refuse:       [],
+      max_intervenantes:      2,
+      priorite:               2,
+      souplesse_horaire:      false,
+      intervenantes_habituelles: [],
       besoins: {
         heures_semaine:       parseInt(f.elements['bn-heures'].value),
         passages_par_semaine: parseInt(f.elements['bn-passages'].value),
