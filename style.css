@@ -500,6 +500,124 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
   #semaine-label { font-size: 12px; }
 }
 
+/* ── Import toolbar ────────────────────────────────────────────────────── */
+.import-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.import-info {
+  font-size: 11px;
+  color: var(--sub);
+  font-style: italic;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ── Bloc test data sur dashboard ──────────────────────────────────────── */
+.test-data-bloc {
+  margin-bottom: 16px;
+}
+
+/* ── Modal grande (preview import) ─────────────────────────────────────── */
+.modal-box-large { max-width: 780px; }
+
+/* ── Table preview import ──────────────────────────────────────────────── */
+.preview-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+}
+.preview-badge.ok   { background: #E8F5E9; color: var(--ok); }
+.preview-badge.warn { background: #FFF8E1; color: var(--warn); }
+.preview-badge.err  { background: #FFEBEE; color: var(--err); }
+
+.preview-errors {
+  background: #FFEBEE;
+  border-left: 3px solid var(--err);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.preview-errors ul { margin: 6px 0 0 16px; }
+.preview-errors li { margin-bottom: 3px; }
+
+.preview-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.preview-table th {
+  background: var(--bg);
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.preview-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview-table tr:last-child td { border-bottom: none; }
+.preview-table tr:hover td { background: var(--bg); }
+
+.preview-more {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--sub);
+  border-top: 1px dashed var(--border);
+  font-style: italic;
+}
+
+/* ── Mode remplacement / ajout ─────────────────────────────────────────── */
+.import-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.import-mode-row label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
 /* ── Divers ────────────────────────────────────────────────────────────── */
 .competences { display: flex; flex-wrap: wrap; gap: 4px; }
 .dispos      { display: flex; flex-wrap: wrap; gap: 3px; }

@@ -166,8 +166,98 @@ Ensuite ouvrir `http://localhost:8080`.
 - [x] Alertes : passages non couverts, dépassement contrat, sous-charge
 - [x] Persistance localStorage (données conservées entre sessions)
 - [x] Réinitialisation avec données de démonstration (bouton ↺ Démo)
+- [x] **Import CSV** des intervenantes et bénéficiaires
+- [x] **Import Excel (.xlsx)** via SheetJS (nécessite internet)
+- [x] Prévisualisation avant import + choix ajouter/remplacer
+- [x] Téléchargement de modèles CSV et Excel
+- [x] **Génération masse** : 60 intervenantes (INTER-1…60) + 200 bénéficiaires (BENE-1…200)
+- [x] Données entièrement fictives (noms techniques, adresses et téléphones fictifs)
 - [x] Interface 100 % en français
 - [x] Design responsive (mobile, tablette, desktop)
+
+---
+
+## Import de données
+
+### Formats acceptés
+
+| Format | Extension | Séparateur | Encodage |
+|--------|-----------|------------|----------|
+| CSV    | `.csv`    | `;` (point-virgule, auto-détecté) | UTF-8 (avec ou sans BOM) |
+| Excel  | `.xlsx`   | — (première feuille) | — (nécessite internet pour SheetJS) |
+
+### Colonnes intervenantes
+
+| Colonne | Obligatoire | Description | Exemple |
+|---------|-------------|-------------|---------|
+| `nom` | ✅ | Identifiant ou nom affiché | `INTER-1` |
+| `prenom` | — | Prénom (peut être vide) | `` |
+| `telephone` | — | Téléphone fictif | `0600000001` |
+| `contrat_heures` | — | Heures contractuelles par semaine | `35` |
+| `competences` | — | Liste séparée par `\|` | `aide_toilette\|aide_repas\|menage` |
+| `disponibilites` | — | Format `jour:debut-fin\|…` (jour 0=lundi) | `0:07:30-17:00\|1:07:30-17:00` |
+| `couleur` | — | Couleur hexadécimale | `#2196F3` |
+
+**Valeurs valides pour `competences`** :
+`aide_toilette`, `aide_repas`, `menage`, `compagnie`, `soins_infirmiers`, `courses`
+
+### Colonnes bénéficiaires
+
+| Colonne | Obligatoire | Description | Exemple |
+|---------|-------------|-------------|---------|
+| `nom` | ✅ | Identifiant ou nom affiché | `BENE-1` |
+| `prenom` | — | Prénom (peut être vide) | `` |
+| `telephone` | — | Téléphone fictif | `0100000001` |
+| `adresse` | — | Adresse fictive | `1 rue des Lilas Secteur Nord` |
+| `competences_requises` | — | Liste séparée par `\|` | `aide_repas\|menage` |
+| `heures_semaine` | — | Volume horaire hebdomadaire | `10` |
+| `passages_par_semaine` | — | Nombre de passages par semaine | `5` |
+| `duree_passage` | — | Durée d'un passage en minutes | `120` |
+| `jours_preferes` | — | Jours préférés (0=lun…6=dim) séparés par `,` | `0,1,2,3,4` |
+| `creneau_debut` | — | Heure début créneau préféré | `08:00` |
+| `creneau_fin` | — | Heure fin créneau préféré | `10:00` |
+| `notes` | — | Texte libre | `Passage matin uniquement` |
+
+### Exemple CSV intervenantes
+
+```csv
+nom;prenom;telephone;contrat_heures;competences;disponibilites;couleur
+INTER-1;;0600000001;35;aide_toilette|aide_repas|menage;0:07:30-17:00|1:07:30-17:00|2:07:30-17:00|3:07:30-17:00|4:07:30-17:00;#2196F3
+INTER-2;;0600000002;30;aide_repas|menage|compagnie;0:09:00-18:00|1:09:00-18:00|2:09:00-18:00|3:09:00-18:00|4:09:00-18:00;#E91E63
+```
+
+### Exemple CSV bénéficiaires
+
+```csv
+nom;prenom;telephone;adresse;competences_requises;heures_semaine;passages_par_semaine;duree_passage;jours_preferes;creneau_debut;creneau_fin;notes
+BENE-1;;0100000001;1 rue des Lilas Secteur Nord;aide_repas|menage;10;5;120;0,1,2,3,4;08:00;10:00;Passage matin uniquement
+BENE-2;;0100000002;2 rue de la Paix Secteur Sud;aide_toilette|soins_infirmiers;7;7;60;0,1,2,3,4,5,6;07:30;09:00;Soins quotidiens
+```
+
+### Comportement à l'import
+
+1. Sélection du fichier (`.csv` ou `.xlsx`)
+2. Parsing + transformation automatique en objets internes
+3. **Prévisualisation** : aperçu des 10 premiers enregistrements + alertes
+4. Choix du mode : **Ajouter** (fusionner) ou **Remplacer** (écraser)
+5. Confirmation → insertion dans localStorage
+
+---
+
+## Génération de données fictives en masse
+
+Accessible depuis le tableau de bord → bouton **📦 Générer 60 + 200 données fictives**.
+
+| | Intervenantes | Bénéficiaires |
+|---|---|---|
+| Nombre | 60 | 200 |
+| Convention | `INTER-1` à `INTER-60` | `BENE-1` à `BENE-200` |
+| Téléphone | `06XXXXXXXX` (fictif) | `01XXXXXXXX` (fictif) |
+| Adresse | `N rue X, Secteur Y` (fictive) | `N rue X, Secteur Y` (fictive) |
+| Profils | 5 rotations de compétences + horaires | 7 rotations de besoins + créneaux |
+| Données réelles | ❌ Aucune | ❌ Aucune |
+
+**Note** : avec 60 intervenantes et 200 bénéficiaires, la génération du planning peut prendre quelques secondes. C'est normal — l'algorithme greedy est O(bénéficiaires × créneaux × intervenantes).
 
 ---
 
