@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HomeCare Planner — V1</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">🏠 HomeCare <span>Planner</span></div>
+  <nav>
+    <button class="nav-btn" data-section="dashboard">Tableau de bord</button>
+    <button class="nav-btn" data-section="intervenantes">Intervenantes</button>
+    <button class="nav-btn" data-section="beneficiaires">Bénéficiaires</button>
+    <button class="nav-btn" data-section="planning">Planning</button>
+    <button class="nav-btn" data-section="alertes">Alertes</button>
+  </nav>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" id="btn-reset" title="Réinitialiser les données de démo">↺ Démo</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Dashboard ─────────────────────────────────────────────────────── -->
+  <section id="dashboard" class="section">
+    <div class="section-header">
+      <h2>Tableau de bord</h2>
+      <button class="btn btn-accent" id="btn-generer">⚡ Générer le planning</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-intervenantes">—</div>
+        <div class="stat-lbl">Intervenantes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-beneficiaires">—</div>
+        <div class="stat-lbl">Bénéficiaires</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-heures">—</div>
+        <div class="stat-lbl">Heures couvertes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-couverture">—</div>
+        <div class="stat-lbl">Taux de couverture</div>
+      </div>
+    </div>
+
+    <div class="couverture-bar">
+      <div class="couverture-bar-label">
+        <span>Couverture hebdomadaire</span>
+        <span id="stat-couverture-lbl"></span>
+      </div>
+      <div class="jauge-bg" style="height:12px">
+        <div class="jauge-fill warn" id="jauge-couverture" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dash-bloc">
+        <h3>Alertes actives</h3>
+        <div id="alertes-dashboard"><p class="vide">Générez un planning pour voir les alertes.</p></div>
+      </div>
+      <div class="dash-bloc">
+        <h3>Charge intervenantes</h3>
+        <div id="charges-intervenantes"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Intervenantes ─────────────────────────────────────────────────── -->
+  <section id="intervenantes" class="section">
+    <div class="section-header">
+      <h2>Intervenantes</h2>
+      <button class="btn btn-primary" id="btn-nouvelle-iv">+ Nouvelle intervenante</button>
+    </div>
+    <div class="cards-grid" id="liste-intervenantes"></div>
+  </section>
+
+  <!-- ── Bénéficiaires ─────────────────────────────────────────────────── -->
+  <section id="beneficiaires" class="section">
+    <div class="section-header">
+      <h2>Bénéficiaires</h2>
+      <button class="btn btn-primary" id="btn-nouveau-bn">+ Nouveau bénéficiaire</button>
+    </div>
+    <div class="cards-grid" id="liste-beneficiaires"></div>
+  </section>
+
+  <!-- ── Planning ──────────────────────────────────────────────────────── -->
+  <section id="planning" class="section">
+    <div class="section-header">
+      <h2>Planning hebdomadaire</h2>
+      <button class="btn btn-accent" onclick="App.genererPlanning()">⚡ Générer le planning</button>
+    </div>
+    <div class="planning-controls">
+      <button class="btn btn-outline btn-sm" id="btn-sem-prec">← Préc.</button>
+      <span id="semaine-label">—</span>
+      <button class="btn btn-outline btn-sm" id="btn-sem-suiv">Suiv. →</button>
+    </div>
+    <div class="planning-wrapper">
+      <div id="planning-entetes"></div>
+      <div id="planning-grille"></div>
+    </div>
+  </section>
+
+  <!-- ── Alertes ───────────────────────────────────────────────────────── -->
+  <section id="alertes" class="section">
+    <div class="section-header">
+      <h2>Alertes &amp; besoins non couverts</h2>
+    </div>
+    <div id="liste-alertes"></div>
+  </section>
+
+</main>
+
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<!-- Modal Intervenante                                                      -->
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<div class="modal" id="modal-intervenante">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-titre-iv">Nouvelle intervenante</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <form id="form-intervenante">
+      <input type="hidden" name="iv-id" />
+      <div class="modal-body">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prénom *</label>
+            <input type="text" name="iv-prenom" required placeholder="Marie" />
+          </div>
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" name="iv-nom" required placeholder="Dupont" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Téléphone</label>
+            <input type="tel" name="iv-tel" placeholder="06 …" />
+          </div>
+          <div class="form-group">
+            <label>Contrat (h/sem.)</label>
+            <input type="number" name="iv-contrat" min="1" max="48" value="35" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Couleur d'affichage</label>
+          <input type="color" name="iv-couleur" value="#2196F3" style="width:60px;height:36px;padding:2px;" />
+        </div>
+
+        <div class="form-group">
+          <label>Compétences</label>
+          <div class="chk-groupe">
+            <label><input type="checkbox" class="chk-competence" value="aide_toilette" /> Aide toilette</label>
+            <label><input type="checkbox" class="chk-competence" value="aide_repas" /> Aide repas</label>
+            <label><input type="checkbox" class="chk-competence" value="menage" /> Ménage</label>
+            <label><input type="checkbox" class="chk-competence" value="compagnie" /> Compagnie</label>
+            <label><input type="checkbox" class="chk-competence" value="soins_infirmiers" /> Soins infirmiers</label>
+            <label><input type="checkbox" class="chk-competence" value="courses" /> Courses</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Disponibilités (par jour)</label>
+          <div class="dispo-rows">
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="0" /> Lundi</label>
+              <input type="time" class="dispo-debut" value="08:00" />
+              <input type="time" class="dispo-fin"   value="18:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="1" /> Mardi</label>
+              <input type="time" class="dispo-debut" value="08:00" />
+              <input type="time" class="dispo-fin"   value="18:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="2" /> Mercredi</label>
+              <input type="time" class="dispo-debut" value="08:00" />
+              <input type="time" class="dispo-fin"   value="18:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="3" /> Jeudi</label>
+              <input type="time" class="dispo-debut" value="08:00" />
+              <input type="time" class="dispo-fin"   value="18:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="4" /> Vendredi</label>
+              <input type="time" class="dispo-debut" value="08:00" />
+              <input type="time" class="dispo-fin"   value="18:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="5" /> Samedi</label>
+              <input type="time" class="dispo-debut" value="09:00" />
+              <input type="time" class="dispo-fin"   value="15:00" />
+            </div>
+            <div class="dispo-row">
+              <label><input type="checkbox" class="chk-jour" value="6" /> Dimanche</label>
+              <input type="time" class="dispo-debut" value="09:00" />
+              <input type="time" class="dispo-fin"   value="13:00" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline btn-annuler">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<!-- Modal Bénéficiaire                                                      -->
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<div class="modal" id="modal-beneficiaire">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-titre-bn">Nouveau bénéficiaire</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <form id="form-beneficiaire">
+      <input type="hidden" name="bn-id" />
+      <div class="modal-body">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prénom *</label>
+            <input type="text" name="bn-prenom" required placeholder="Pierre" />
+          </div>
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" name="bn-nom" required placeholder="Leroy" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Adresse</label>
+          <input type="text" name="bn-adresse" placeholder="12 rue des Lilas, Paris" />
+        </div>
+
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" name="bn-tel" placeholder="01 …" />
+        </div>
+
+        <div class="form-group">
+          <label>Compétences requises</label>
+          <div class="chk-groupe">
+            <label><input type="checkbox" class="chk-comp-requis" value="aide_toilette" /> Aide toilette</label>
+            <label><input type="checkbox" class="chk-comp-requis" value="aide_repas" /> Aide repas</label>
+            <label><input type="checkbox" class="chk-comp-requis" value="menage" /> Ménage</label>
+            <label><input type="checkbox" class="chk-comp-requis" value="compagnie" /> Compagnie</label>
+            <label><input type="checkbox" class="chk-comp-requis" value="soins_infirmiers" /> Soins infirmiers</label>
+            <label><input type="checkbox" class="chk-comp-requis" value="courses" /> Courses</label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Heures / sem.</label>
+            <input type="number" name="bn-heures" min="1" max="56" value="7" />
+          </div>
+          <div class="form-group">
+            <label>Passages / sem.</label>
+            <input type="number" name="bn-passages" min="1" max="21" value="3" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Durée par passage (minutes)</label>
+          <input type="number" name="bn-duree" min="30" max="480" step="30" value="60" />
+        </div>
+
+        <div class="form-group">
+          <label>Créneau préféré</label>
+          <div class="form-row">
+            <input type="time" name="bn-creneau-debut" value="09:00" />
+            <input type="time" name="bn-creneau-fin"   value="11:00" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Jours préférés</label>
+          <div class="chk-groupe">
+            <label><input type="checkbox" class="chk-jour-pref" value="0" /> Lun</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="1" /> Mar</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="2" /> Mer</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="3" /> Jeu</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="4" /> Ven</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="5" /> Sam</label>
+            <label><input type="checkbox" class="chk-jour-pref" value="6" /> Dim</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea name="bn-notes" rows="2" placeholder="Informations utiles…"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline btn-annuler">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toasts"></div>
+
+<!-- Scripts (ordre important) -->
+<script src="js/utils.js"></script>
+<script src="js/data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
