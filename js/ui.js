@@ -383,6 +383,84 @@ const UI = {
     };
   },
 
+  // ── Prévisualisation import ───────────────────────────────────────────────
+
+  /**
+   * Affiche la modal de prévisualisation avant import.
+   * @param {object} opts
+   *   - titre    : string
+   *   - objets   : tableau d'objets transformés
+   *   - erreurs  : tableau de strings (erreurs de validation)
+   *   - colonnes : colonnes à afficher dans le tableau
+   *   - total    : nb total de lignes dans le fichier
+   */
+  afficherApercuImport({ titre, objets, erreurs, colonnes, total }) {
+    document.getElementById('modal-import-titre').textContent = titre;
+
+    const aErreurs = erreurs && erreurs.length > 0;
+    const MAX_ROWS = 10;
+    const apercu   = objets.slice(0, MAX_ROWS);
+
+    let html = '';
+
+    // Résumé
+    html += '<div class="preview-summary">';
+    html += `<span class="preview-badge ok">✔ ${total} enregistrement(s) trouvé(s)</span>`;
+    html += `<span class="preview-badge ${aErreurs ? 'warn' : 'ok'}">${aErreurs ? '⚠ ' + erreurs.length + ' avertissement(s)' : '✔ Aucune erreur'}</span>`;
+    html += '</div>';
+
+    // Erreurs
+    if (aErreurs) {
+      html += '<div class="preview-errors"><strong>Avertissements :</strong><ul>';
+      erreurs.forEach(e => { html += `<li>${e}</li>`; });
+      html += '</ul></div>';
+    }
+
+    // Mode d'import (remplacer ou ajouter)
+    html += `<div class="import-mode-row">
+      <strong>Mode :</strong>
+      <label><input type="radio" name="import-mode" value="ajouter" checked /> Ajouter aux données existantes</label>
+      <label><input type="radio" name="import-mode" value="remplacer" /> Remplacer toutes les données</label>
+    </div>`;
+
+    // Table prévisualisation
+    if (apercu.length) {
+      html += '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>';
+      colonnes.forEach(c => { html += `<th>${c}</th>`; });
+      html += '</tr></thead><tbody>';
+      apercu.forEach(obj => {
+        html += '<tr>';
+        colonnes.forEach(c => {
+          let val = obj[c];
+          if (Array.isArray(val)) val = val.join(', ');
+          else if (val && typeof val === 'object') val = JSON.stringify(val).slice(0, 40);
+          html += `<td title="${String(val || '').replace(/"/g, '&quot;')}">${val !== undefined && val !== null ? val : '<span style="color:var(--sub)">—</span>'}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      if (total > MAX_ROWS) {
+        html += `<div class="preview-more">… et ${total - MAX_ROWS} enregistrement(s) supplémentaire(s) non affichés</div>`;
+      }
+      html += '</div>';
+    } else if (!aErreurs) {
+      html += '<p class="vide">Aucun enregistrement valide trouvé.</p>';
+    }
+
+    document.getElementById('modal-import-body').innerHTML = html;
+
+    // Désactiver le bouton confirmer si erreurs bloquantes
+    document.getElementById('btn-confirmer-import').disabled = objets.length === 0;
+
+    this.ouvrirModal('modal-import');
+  },
+
+  /** Lit le mode d'import sélectionné dans la modal */
+  lireModeImport() {
+    const radio = document.querySelector('input[name="import-mode"]:checked');
+    return radio ? radio.value : 'ajouter';
+  },
+
   // ── Toast notifications ───────────────────────────────────────────────────
 
   toast(msg, type = 'success') {

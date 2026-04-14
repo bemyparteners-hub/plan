@@ -19,7 +19,7 @@
     <button class="nav-btn" data-section="alertes">Alertes</button>
   </nav>
   <div class="header-actions">
-    <button class="btn btn-outline btn-sm" id="btn-reset" title="Réinitialiser les données de démo">↺ Démo</button>
+    <button class="btn btn-outline btn-sm" id="btn-reset" title="Réinitialiser avec les 4 intervenantes et 5 bénéficiaires de démo">↺ Démo</button>
   </div>
 </header>
 
@@ -61,6 +61,19 @@
       </div>
     </div>
 
+    <!-- Bloc génération de données de test -->
+    <div class="dash-bloc test-data-bloc">
+      <h3>🧪 Données de test en masse</h3>
+      <p class="sous-titre" style="margin-bottom:10px">
+        Génère 60 intervenantes (INTER-1 … INTER-60) et 200 bénéficiaires (BENE-1 … BENE-200)
+        avec des profils fictifs variés pour tester le moteur en charge.
+      </p>
+      <div class="import-toolbar">
+        <button class="btn btn-primary" id="btn-generer-masse">📦 Générer 60 + 200 données fictives</button>
+        <button class="btn btn-outline btn-sm" id="btn-reset-test" title="Vide toutes les données et repart de zéro">🗑️ Vider les données</button>
+      </div>
+    </div>
+
     <div class="dashboard-grid">
       <div class="dash-bloc">
         <h3>Alertes actives</h3>
@@ -77,8 +90,17 @@
   <section id="intervenantes" class="section">
     <div class="section-header">
       <h2>Intervenantes</h2>
-      <button class="btn btn-primary" id="btn-nouvelle-iv">+ Nouvelle intervenante</button>
+      <button class="btn btn-primary" id="btn-nouvelle-iv">+ Nouvelle</button>
     </div>
+
+    <!-- Barre d'import -->
+    <div class="import-toolbar">
+      <button class="btn btn-outline btn-sm" id="btn-import-iv">📂 Importer (.csv / .xlsx)</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-csv-iv" title="Télécharger un fichier CSV exemple">⬇ Modèle CSV</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-iv" title="Télécharger un fichier Excel exemple (nécessite internet)">⬇ Modèle Excel</button>
+      <span class="import-info">Colonnes : nom · prenom · telephone · contrat_heures · competences · disponibilites · couleur</span>
+    </div>
+
     <div class="cards-grid" id="liste-intervenantes"></div>
   </section>
 
@@ -86,8 +108,17 @@
   <section id="beneficiaires" class="section">
     <div class="section-header">
       <h2>Bénéficiaires</h2>
-      <button class="btn btn-primary" id="btn-nouveau-bn">+ Nouveau bénéficiaire</button>
+      <button class="btn btn-primary" id="btn-nouveau-bn">+ Nouveau</button>
     </div>
+
+    <!-- Barre d'import -->
+    <div class="import-toolbar">
+      <button class="btn btn-outline btn-sm" id="btn-import-bn">📂 Importer (.csv / .xlsx)</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-csv-bn" title="Télécharger un fichier CSV exemple">⬇ Modèle CSV</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-bn" title="Télécharger un fichier Excel exemple (nécessite internet)">⬇ Modèle Excel</button>
+      <span class="import-info">Colonnes : nom · prenom · telephone · adresse · competences_requises · heures_semaine · passages_par_semaine · duree_passage · jours_preferes · creneau_debut · creneau_fin · notes</span>
+    </div>
+
     <div class="cards-grid" id="liste-beneficiaires"></div>
   </section>
 
@@ -133,12 +164,12 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Prénom *</label>
-            <input type="text" name="iv-prenom" required placeholder="Marie" />
+            <label>Prénom</label>
+            <input type="text" name="iv-prenom" placeholder="Marie" />
           </div>
           <div class="form-group">
             <label>Nom *</label>
-            <input type="text" name="iv-nom" required placeholder="Dupont" />
+            <input type="text" name="iv-nom" required placeholder="Dupont ou INTER-1" />
           </div>
         </div>
 
@@ -235,12 +266,12 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Prénom *</label>
-            <input type="text" name="bn-prenom" required placeholder="Pierre" />
+            <label>Prénom</label>
+            <input type="text" name="bn-prenom" placeholder="Pierre" />
           </div>
           <div class="form-group">
             <label>Nom *</label>
-            <input type="text" name="bn-nom" required placeholder="Leroy" />
+            <input type="text" name="bn-nom" required placeholder="Leroy ou BENE-1" />
           </div>
         </div>
 
@@ -317,14 +348,42 @@
   </div>
 </div>
 
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<!-- Modal Prévisualisation import                                           -->
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<div class="modal" id="modal-import">
+  <div class="modal-box modal-box-large">
+    <div class="modal-header">
+      <h3 id="modal-import-titre">Prévisualisation import</h3>
+      <button class="modal-close" data-modal="modal-import">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-import-body">
+      <!-- injecté par UI.afficherAperçuImport() -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline btn-annuler" data-modal="modal-import">Annuler</button>
+      <button type="button" class="btn btn-primary" id="btn-confirmer-import">Confirmer l'import</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toasts -->
 <div id="toasts"></div>
 
-<!-- Scripts (ordre important) -->
+<!-- Inputs fichier cachés -->
+<input type="file" id="file-iv" accept=".csv,.xlsx" style="display:none" />
+<input type="file" id="file-bn" accept=".csv,.xlsx" style="display:none" />
+
+<!-- SheetJS — chargé depuis CDN pour la lecture Excel (nécessite internet) -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+        onerror="console.warn('SheetJS non chargé — import Excel désactivé.')"></script>
+
+<!-- Scripts applicatifs (ordre important) -->
 <script src="js/utils.js"></script>
 <script src="js/data.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/importer.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>
