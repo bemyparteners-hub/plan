@@ -90,36 +90,72 @@
   <section id="intervenantes" class="section">
     <div class="section-header">
       <h2>Intervenantes</h2>
+    </div>
+
+    <!-- Barre principale -->
+    <div class="table-toolbar">
+      <input type="search" id="filtre-iv" class="table-search" placeholder="Rechercher une intervenante…" />
       <button class="btn btn-primary" id="btn-nouvelle-iv">+ Nouvelle</button>
+      <button class="btn btn-outline btn-sm" id="btn-import-iv">📂 Importer</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-csv-iv">⬇ Modèle CSV</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-iv">⬇ Modèle Excel</button>
+      <span class="table-count" id="count-iv"></span>
     </div>
 
-    <!-- Barre d'import -->
-    <div class="import-toolbar">
-      <button class="btn btn-outline btn-sm" id="btn-import-iv">📂 Importer (.csv / .xlsx)</button>
-      <button class="btn btn-outline btn-sm" id="btn-modele-csv-iv" title="Télécharger un fichier CSV exemple">⬇ Modèle CSV</button>
-      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-iv" title="Télécharger un fichier Excel exemple (nécessite internet)">⬇ Modèle Excel</button>
-      <span class="import-info">Colonnes : nom · prenom · telephone · contrat_heures · competences · disponibilites · couleur</span>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="td-badge"></th>
+            <th>Nom</th>
+            <th>Téléphone</th>
+            <th>Email</th>
+            <th>Contrat</th>
+            <th>Secteur</th>
+            <th>Compétences</th>
+            <th>Charge sem.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="corps-intervenantes"></tbody>
+      </table>
     </div>
-
-    <div class="cards-grid" id="liste-intervenantes"></div>
   </section>
 
   <!-- ── Bénéficiaires ─────────────────────────────────────────────────── -->
   <section id="beneficiaires" class="section">
     <div class="section-header">
       <h2>Bénéficiaires</h2>
+    </div>
+
+    <!-- Barre principale -->
+    <div class="table-toolbar">
+      <input type="search" id="filtre-bn" class="table-search" placeholder="Rechercher un bénéficiaire…" />
       <button class="btn btn-primary" id="btn-nouveau-bn">+ Nouveau</button>
+      <button class="btn btn-outline btn-sm" id="btn-import-bn">📂 Importer</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-csv-bn">⬇ Modèle CSV</button>
+      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-bn">⬇ Modèle Excel</button>
+      <span class="table-count" id="count-bn"></span>
     </div>
 
-    <!-- Barre d'import -->
-    <div class="import-toolbar">
-      <button class="btn btn-outline btn-sm" id="btn-import-bn">📂 Importer (.csv / .xlsx)</button>
-      <button class="btn btn-outline btn-sm" id="btn-modele-csv-bn" title="Télécharger un fichier CSV exemple">⬇ Modèle CSV</button>
-      <button class="btn btn-outline btn-sm" id="btn-modele-xlsx-bn" title="Télécharger un fichier Excel exemple (nécessite internet)">⬇ Modèle Excel</button>
-      <span class="import-info">Colonnes : nom · prenom · telephone · adresse · competences_requises · heures_semaine · passages_par_semaine · duree_passage · jours_preferes · creneau_debut · creneau_fin · notes</span>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Adresse</th>
+            <th>Téléphone</th>
+            <th>H/sem.</th>
+            <th>Passages</th>
+            <th>Priorité</th>
+            <th>Secteur</th>
+            <th>Couverture</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="corps-beneficiaires"></tbody>
+      </table>
     </div>
-
-    <div class="cards-grid" id="liste-beneficiaires"></div>
   </section>
 
   <!-- ── Planning ──────────────────────────────────────────────────────── -->
@@ -363,6 +399,25 @@
     <div class="modal-footer">
       <button type="button" class="btn btn-outline btn-annuler" data-modal="modal-import">Annuler</button>
       <button type="button" class="btn btn-primary" id="btn-confirmer-import">Confirmer l'import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<!-- Modal Fiche détaillée (partagée IV / BN)                               -->
+<!-- ────────────────────────────────────────────────────────────────────── -->
+<div class="modal" id="modal-fiche">
+  <div class="modal-box modal-box-fiche">
+    <div class="modal-header">
+      <h3 id="fiche-titre">Fiche</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="fiche-corps">
+      <!-- injecté dynamiquement -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-annuler">Fermer</button>
+      <button class="btn btn-primary" id="fiche-btn-editer">✏ Modifier</button>
     </div>
   </div>
 </div>

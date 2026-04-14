@@ -135,8 +135,11 @@ const Planner = {
       // Compétences requises
       if (!benef.competences_requises.every(c => iv.competences.includes(c))) continue;
 
-      // Refus
+      // Refus intervenante → bénéficiaire
       if (iv.refus.includes(benef.id)) continue;
+
+      // Refus bénéficiaire → intervenante
+      if (benef.personnel_refuse && benef.personnel_refuse.includes(iv.id)) continue;
 
       // Absence ce jour
       if (iv.absences.includes(dateJour)) continue;
@@ -169,6 +172,12 @@ const Planner = {
       if (passagesExistants.some(p => p.intervenante_id === iv.id && p.beneficiaire_id === benef.id)) {
         score += 20;
       }
+
+      // Intervenante favorite du bénéficiaire
+      if (benef.intervenante_favorite && benef.intervenante_favorite === iv.id) score += 15;
+
+      // Dans la liste des préférées
+      if (benef.personnel_prefere && benef.personnel_prefere.includes(iv.id)) score += 8;
 
       // Créneau préféré du bénéficiaire
       if (creneau.prefere) score += 10;

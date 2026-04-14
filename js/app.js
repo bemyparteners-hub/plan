@@ -5,17 +5,43 @@ const App = {
   etat: null,
   semaine: null,
 
-  // État temporaire de la modal d'import
+  _filtreIV: '',
+  _filtreBN: '',
+  _ficheEnCours: null,
   _importEnCours: { type: null, objets: [] },
 
   init() {
     this.etat    = Storage.charger();
+    this._migrerDonnees(); // compatibilité ascendante
     this.semaine = Utils.debutSemaine();
     this._bindNav();
     this._bindActions();
     this._mettreAJourSemaine();
     this.rafraichir();
     UI.afficherSection('dashboard');
+  },
+
+  // ── Migration données localStorage (compatibilité ascendante) ────────────
+
+  _migrerDonnees() {
+    this.etat.intervenantes.forEach(iv => {
+      if (!iv.email)                iv.email = '';
+      if (!iv.adresse)              iv.adresse = '';
+      if (!iv.contrat_type)         iv.contrat_type = 'CDI';
+      if (iv.vehicule === undefined) iv.vehicule = false;
+      if (iv.actif === undefined)   iv.actif = true;
+      if (!iv.beneficiaires_habituels) iv.beneficiaires_habituels = [];
+    });
+    this.etat.beneficiaires.forEach(b => {
+      if (!b.email)                       b.email = '';
+      if (!b.personnel_refuse)            b.personnel_refuse = [];
+      if (!b.personnel_prefere)           b.personnel_prefere = [];
+      if (!b.intervenantes_habituelles)   b.intervenantes_habituelles = [];
+      if (b.intervenante_favorite === undefined) b.intervenante_favorite = null;
+      if (!b.max_intervenantes)           b.max_intervenantes = 2;
+      if (!b.priorite)                    b.priorite = 2;
+      if (b.souplesse_horaire === undefined) b.souplesse_horaire = false;
+    });
   },
 
   // ── Semaine courante ─────────────────────────────────────────────────────
@@ -31,8 +57,8 @@ const App = {
   rafraichir() {
     const passages = this.etat.planning ? this.etat.planning.passages : [];
     UI.afficherDashboard(this.etat);
-    UI.afficherIntervenantes(this.etat.intervenantes);
-    UI.afficherBeneficiaires(this.etat.beneficiaires, passages);
+    UI.afficherIntervenantes(this.etat.intervenantes, passages, this._filtreIV);
+    UI.afficherBeneficiaires(this.etat.beneficiaires, passages, this._filtreBN);
     UI.afficherPlanning(this.etat, this.semaine);
     UI.afficherAlertes(this.etat.planning ? this.etat.planning.alertes : []);
   },
@@ -83,6 +109,20 @@ const App = {
         this.rafraichir();
         UI.toast('Données vidées.', 'warn');
       }
+    });
+
+    // Recherche intervenantes
+    document.getElementById('filtre-iv').addEventListener('input', e => {
+      this._filtreIV = e.target.value.trim();
+      const passages = this.etat.planning ? this.etat.planning.passages : [];
+      UI.afficherIntervenantes(this.etat.intervenantes, passages, this._filtreIV);
+    });
+
+    // Recherche bénéficiaires
+    document.getElementById('filtre-bn').addEventListener('input', e => {
+      this._filtreBN = e.target.value.trim();
+      const passages = this.etat.planning ? this.etat.planning.passages : [];
+      UI.afficherBeneficiaires(this.etat.beneficiaires, passages, this._filtreBN);
     });
 
     // Formulaires CRUD
@@ -369,6 +409,36 @@ const App = {
     }, 50);
   },
 
+  // ── Fiches détaillées ─────────────────────────────────────────────────────
+
+  voirFicheIntervenante(id) {
+    const iv = this.etat.intervenantes.find(i => i.id === id);
+    if (!iv) return;
+    const passages = this.etat.planning
+      ? this.etat.planning.passages.filter(p => p.intervenante_id === id) : [];
+    this._ficheEnCours = { type: 'iv', id };
+    document.getElementById('fiche-btn-editer').onclick = () => {
+      UI.fermerModal('modal-fiche');
+      this.editerIntervenante(id);
+    };
+    UI.afficherFicheIntervenante(iv, passages, this.etat.beneficiaires);
+    UI.ouvrirModal('modal-fiche');
+  },
+
+  voirFicheBeneficiaire(id) {
+    const bn = this.etat.beneficiaires.find(b => b.id === id);
+    if (!bn) return;
+    const passages = this.etat.planning
+      ? this.etat.planning.passages.filter(p => p.beneficiaire_id === id) : [];
+    this._ficheEnCours = { type: 'bn', id };
+    document.getElementById('fiche-btn-editer').onclick = () => {
+      UI.fermerModal('modal-fiche');
+      this.editerBeneficiaire(id);
+    };
+    UI.afficherFicheBeneficiaire(bn, passages, this.etat.intervenantes);
+    UI.ouvrirModal('modal-fiche');
+  },
+
   // ── CRUD intervenantes ────────────────────────────────────────────────────
 
   editerIntervenante(id) {
@@ -386,8 +456,17 @@ const App = {
     }
     const idx = this.etat.intervenantes.findIndex(i => i.id === données.id);
     if (idx >= 0) {
-      données.absences = this.etat.intervenantes[idx].absences;
-      données.refus    = this.etat.intervenantes[idx].refus;
+      const ancien = this.etat.intervenantes[idx];
+      // Préserver les champs non exposés dans le formulaire
+      données.absences             = ancien.absences;
+      données.refus                = ancien.refus;
+      données.email                = ancien.email || données.email;
+      données.adresse              = ancien.adresse || données.adresse;
+      données.contrat_type         = ancien.contrat_type || données.contrat_type;
+      données.vehicule             = ancien.vehicule !== undefined ? ancien.vehicule : données.vehicule;
+      données.actif                = ancien.actif !== undefined ? ancien.actif : données.actif;
+      données.beneficiaires_habituels = ancien.beneficiaires_habituels || [];
+      données.secteur              = ancien.secteur || '';
       this.etat.intervenantes[idx] = données;
       UI.toast(`${données.prenom} ${données.nom} mise à jour.`);
     } else {
@@ -429,6 +508,17 @@ const App = {
     }
     const idx = this.etat.beneficiaires.findIndex(b => b.id === données.id);
     if (idx >= 0) {
+      const ancien = this.etat.beneficiaires[idx];
+      // Préserver les champs non exposés dans le formulaire
+      données.email                  = ancien.email || '';
+      données.intervenante_favorite  = ancien.intervenante_favorite || null;
+      données.personnel_prefere      = ancien.personnel_prefere || [];
+      données.personnel_refuse       = ancien.personnel_refuse || [];
+      données.max_intervenantes      = ancien.max_intervenantes || 2;
+      données.priorite               = ancien.priorite || 2;
+      données.souplesse_horaire      = ancien.souplesse_horaire || false;
+      données.intervenantes_habituelles = ancien.intervenantes_habituelles || [];
+      données.secteur                = ancien.secteur || '';
       this.etat.beneficiaires[idx] = données;
       UI.toast(`${données.prenom} ${données.nom} mis à jour.`);
     } else {
